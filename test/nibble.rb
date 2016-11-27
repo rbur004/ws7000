@@ -4,7 +4,7 @@ require_relative '../lib/nibble.rb'
   puts "Original definition Nibble[0xE1,0xCD]"
   a  = Nibble[0xE1,0xCD]
 
-  puts "Extract with each_with_index"
+  puts "Extract with each"
   a.each { |v| puts "%01X"%v }
 
   puts "add 2 to nibble 4"
