@@ -2,12 +2,14 @@
 
 =begin
   not available <STX 02h> <01h> <NAK 15h> <0E8h> <ETX 03h>
+=end
 
+=begin
   Request Dataset
-	<SOH><0x1><Chksum><EOT>
+	<SOH><0x31><Chksum><EOT>
 		Response from weather station: (34/60 Bytes) Mine has additional 0 byte, so 35/61 bytes are received.
-		1. Data available	
-			Block no.: 2 bytes  Number of the block in the memory 
+		1. Data available
+			Block no.: 2 bytes  Number of the block in the memory
 			           (no relation to time. Serves to control dataset registered twice).)
 			Time:      2 bytes Age of the dataset in minutes up to the current time.
 								 age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
@@ -18,19 +20,22 @@
 =begin
 	Select Next Dataset
 		<SOH><0x32><Chksum><EOT>
-			Response from weather station: (1 Byte) 
+			Response from weather station: (1 Byte)
 				1. Next dataset available : <ACK> 0x06
 				2. No dataset available:    <DLE> 0x10
 =end
 
 =begin
-	Set 9 Sensors
+	Set 8 Sensors
 		<SOH><0x33><Chksum><EOT>
-		Response from weather station: (1 Byte) 
+		Response from weather station: (1 Byte)
 		<ACK>
+=end
+
+=begin
 	set 16 Sensors
 	<SOH><0x34><Chksum><EOT>
-	Response from weather station: (1 Byte) 
+	Response from weather station: (1 Byte)
 	<ACK>
 =end
 
@@ -38,7 +43,7 @@
   Set Interval time
 	 <SOH><0x36><minutes><Chksum><EOT>
 		minutes range 1..60
-	 Response from weather station: (1 Byte) 
+	 Response from weather station: (1 Byte)
 	<ACK> if in range
 	<DLE> if out of range
 =end
@@ -46,18 +51,18 @@
 =begin
 	Status
 	 <SOH><0x35><Chksum><EOT>
-	Response from weather station: (21 Byte) 
-	Bytes 1 - 18 
-			S:1-8 Temp/Hum 
-			9 Rain, 
-			10 Wind 
-			11 Indoor Temp/Hum/Pres 
-			12 S9:Temp/Hum 
+	Response from weather station: (21 Byte)
+	Bytes 1 - 18
+			S:1-8 Temp/Hum
+			9 Rain,
+			10 Wind
+			11 Indoor Temp/Hum/Pres
+			12 S9:Temp/Hum
 			13-15 S10-15:Temp/Hum/Pres
 		Byte  >= 0x10 if sensor present
 		value >  0x10 number of error
 	Byte 19 Sample Interval in minutes
-	Byte 20 
+	Byte 20
 	  bit 0 DFC77 time receiver active
 		bit 1 HF if set
 		bit 2 8/16 Sensors

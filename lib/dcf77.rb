@@ -1,6 +1,7 @@
 #!/usr/local/bin/ruby
 require_relative 'nibble.rb'
 
+#DCF77 encapsulates a DCF77 time record, captured by the WS7000
 class DCF77
   attr_reader :time
   def initialize(dcf77)
@@ -11,7 +12,7 @@ class DCF77
       @time = Time.now
     end
   end
-  
+
   def to_s
     @time.strftime("%Y-%m-%d %H:%M:%S")
   end

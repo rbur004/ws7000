@@ -1,24 +1,17 @@
-#!/usr/local/bin/ruby
 require_relative 'nibble.rb'
 
-class Sensor
-  attr_accessor :name, :units, :value, :new_value
-  def initialize(name, value, units, new_value=true)
-    @name, @value, @units, @new_value = name, value, units, new_value
-  end
-end
 
 class Sensors
   RAIN_UNITS=0.5 #mm per reading
 
   attr_accessor :sensor, :timestamp
-  
+
 =begin
   Request Dataset
   <SOH><0x1><Chksum><EOT>
     Response from weather station: (34/60 Bytes) Mine has additional 0 byte, so 35/61 bytes are received.
-    1. Data available 
-      Block no.: 2 bytes  Number of the block in the memory 
+    1. Data available
+      Block no.: 2 bytes  Number of the block in the memory
                  (no relation to time. Serves to control dataset registered twice).)
       Time:      2 bytes Age of the dataset in minutes up to the current time.
                  age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
@@ -36,7 +29,7 @@ class Sensors
       n = 0
       index = data.get_ushort(n) #We can ignore this, as the Time gives us a unique ID
       n += 4
-      @timestamp = Time.now - 60 * data.get_ushort(n) 
+      @timestamp = Time.now - 60 * data.get_ushort(n)
       n += 4
       (1..8).each do |s|
         humidity, new_value = data.get_ubyte_et_topbit(n+3)
@@ -62,7 +55,7 @@ class Sensors
       @sensor <<  Sensor.new("Humidity_I", humidity , '%', new_value)
       n += 8
 
-      if data.length > 70 #We have 16 Sensors. 
+      if data.length > 70 #We have 16 Sensors.
         humidity, new_value = data.get_ubyte_et_topbit(n+3)
         @sensor <<  Sensor.new("Temp9", data.get_bcd(n,3)/10.0, 'C', new_value)
         @sensor <<  Sensor.new("Humidity9", humidity , '%', new_value)
@@ -78,7 +71,7 @@ class Sensors
       end
     end
   end
-    
+
   def data?
 	@sensor.length > 0
   end
@@ -87,7 +80,7 @@ class Sensors
     if @sensor.length > 0
       print "#{timestamp.strftime("%Y-%m-%d %H:%M:%S")}"
       @sensor.each {|s| print s.new_value ? "\t#{s.value}" : "\t-" }
-      puts  
+      puts
     end
   end
 
@@ -102,9 +95,5 @@ class Sensors
       return "No Data"
     end
   end
-  
+
 end
-
-
-
-
