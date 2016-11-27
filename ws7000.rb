@@ -1,6 +1,6 @@
 #!/usr/local/bin/ruby
 # encoding: BINARY
-require 'rubygems'
+#require 'rubygems'
 require 'serialport'
 #require 'readbytes'
 require_relative 'sensor.rb'
@@ -11,8 +11,9 @@ class WeatherStation
 
   attr_accessor :response
 
-  #PORT = '/dev/ttyUSB0'
-  PORT = '/dev/tty.usbserial-FT8X58LF'
+  PORT = '/dev/ttyUSB0'
+  #PORT = '/dev/tty.usbserial-FT8X58LF'
+  #PORT = '/dev/ttyu0'
   BAUD = 9600
   BITS = 8
   STOPBITS = 2
@@ -26,6 +27,8 @@ class WeatherStation
   EOT = 0x04
   ENQ = 0x05
   ENQ_ESC = [0x05,0x15]
+  ACK = 0x06
+  DLE = 0x10
   DC2 = 0x12
   DC3 = 0x13
   NAK = 0x15
@@ -49,20 +52,41 @@ class WeatherStation
       puts DCF77.new(@response).to_s
     when 1 #Request dataset
       exchange("\x01\x31\xce\x04", 61)
-      puts Sensors(@response).to_s
+      #@response.each { |r| print "%02X " % r }
+      s =  Sensors.new(@response)
+      if s.data?
+        puts s.to_data_row
+        puts Sensors.new(@response).to_s
+      end
     when 2 #select next dataset
       exchange("\x01\x32\xcd\x04",1)
+      exit @response[0] == ACK ? 0 : 1
     when 3 #activate 8 sensors
       exchange("\x01\x33\xcc\x04",1)
+      exit @response[0] == ACK ? 0 : 1
     when 4 #activate 16 sensors
       exchange("\x01\x34\xcb\x04",1)
+      exit @response[0] == ACK ? 0 : 1
     when 5
       exchange("\x01\x35\xca\x04", 21)
-      @response.each { |r| puts "%02X " % r }
+      @response.each { |r| print "%02X " % r }
+      puts
     when 6 #set interval time
       #<SOT><CMD_BYTE><ARGUMENT><CHECK_SUM><EOT>
       raise Weather_exception, "Interval Range 2..60" if arg > 60 || arg < 2
-      exchange("\x01\x36#{arg.chr}#{0xc9-arg}\x04", 1)
+      exchange("\x01\x36#{arg.chr}#{(0xc9-arg).chr}\x04", 1)
+      exit @response[0] == ACK ? 0 : 1
+    when 12 #Loop through 1 and 2
+      begin
+        exchange("\x01\x31\xce\x04", 61)
+        s = Sensors.new(@response)
+        exchange("\x01\x32\xcd\x04",1)
+        if s.data?
+	  puts s.to_data_row
+        else
+          break
+        end
+      end while( @response[0] == ACK )
     end
   end
 
@@ -87,14 +111,14 @@ class WeatherStation
       raise Weather_exception, "Bad packet: No STX" if x != STX
 
       length = @sp.readbyte
-      #puts "Length = #{length}"
+      STDERR.puts "Length = #{length}"
 
       i = 1
       escaped = false
       begin
         x = @sp.readbyte
         if length > 0
-          print "#{i}: #{"%02X" % x} "
+          STDERR.print "#{i}: #{"%02X" % x} "
           i += 1
           if x == ENQ 
             escaped = true
@@ -114,8 +138,7 @@ class WeatherStation
         elsif length == 0
           @checksum = x
           length = -1
-          raise Weather_exception, "Checksum Error" if x != checksum(@response)
-          #puts "Checksum: #{"%02X"%x}"
+          raise Weather_exception, "Checksum Error #{"%02X"%x}"  if x != checksum(@response)
         elsif x != ETX
           raise Weather_exception, "Missing ETX"
         end
@@ -126,6 +149,7 @@ class WeatherStation
       end
     ensure   
       @sp.dtr = 0
+      STDERR.puts
     end
   end
 
@@ -144,7 +168,7 @@ class WeatherStation
       @sp.read_timeout = 30000
       #puts "DTR #{@sp.dtr} DSR #{@sp.dsr} RTS #{@sp.rts} CTS #{@sp.cts} DCD #{@sp.dcd} RI #{@sp.ri}"
     rescue => error
-      puts Weather_exception, "open_serial_port: " + error.to_s
+      STDERR.puts Weather_exception, "open_serial_port: " + error.to_s
       @sp = nil
     end
   end
@@ -152,9 +176,14 @@ class WeatherStation
 end
 
 x = WeatherStation.new
-  #x.command(ARGV[0].to_i)
 begin
-  x.command(5)
+  if ARGV.length == 1
+    x.command(ARGV[0].to_i)
+  elsif ARGV.length == 2
+    x.command(ARGV[0].to_i, ARGV[1].to_i)
+  else
+    puts "Error: ws7000.rb [0-6] [time interval, if 6]"
+  end
 rescue Weather_exception => error
-  puts error
+  STDERR.puts error
 end

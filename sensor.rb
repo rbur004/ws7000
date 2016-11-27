@@ -3,7 +3,7 @@ require_relative 'nibble.rb'
 
 class Sensor
   attr_accessor :name, :units, :value, :new_value
-  def initialize(datetime, name, value, units, new_value=true)
+  def initialize(name, value, units, new_value=true)
     @name, @value, @units, @new_value = name, value, units, new_value
   end
 end
@@ -25,13 +25,12 @@ class Sensors
       Data:      30 (9 sensors) or 56 (16 sensors) bytes
     2. No data available: <DLE>
 =end
-  def initialize(data)
+  def initialize(the_data_byte_array)
+    data = Nibble.new(the_data_byte_array)
     @sensor = [ ]
     if data.length == 2 #In nibbles
-      if data.get_byte(0) == 0x10 #DLE
-        puts "No Data"
-      else
-        raise "Short Packet, got #{"%02X" % x}"
+      if data.get_byte(0) != 0x10 #DLE
+        raise "Short Packet, got #{"%02X" % data.get_byte(0)}"
       end
     else
       n = 0
@@ -47,10 +46,11 @@ class Sensors
       end
 
       rain = data.get_short(n); n+=4
-      @sensor <<  Sensor.new("Rainfall", rain&0xfff * RAIN_UNITS, 'mm', rain&0x8000 != 0)
+      @sensor <<  Sensor.new("Rainfall", (rain&0xfff) * RAIN_UNITS, 'mm', (rain&0x8000) != 0)
 
-      wind_speed, new_value = data.get_ubcd_et_topbit(n,4); n+=4
-      @sensor <<  Sensor.new("Wind speed", wind_speed/ 10.0, 'km', new_value)
+      wind_speed, new_value = data.get_ubcd_et_topbit(n,4)
+      n+=4
+      @sensor <<  Sensor.new("Wind speed", wind_speed / 10.0, 'km', new_value)
       wind_direction_top_nibble = data.get_ubcd(n+2,1)
       @sensor <<  Sensor.new("Wind Direction", data.get_ubcd(n,2) + (wind_direction_top_nibble & 0x3) * 100, 'Degrees', new_value)
       @sensor <<  Sensor.new("Wind Deviation", (wind_direction_top_nibble >> 2) & 0x3 , 'Degrees', new_value)
@@ -79,12 +79,28 @@ class Sensors
     end
   end
     
-  def to_s
-    s = "#{timestamp.strftime("%Y-%m-%dT%H:%M:%S")}\n"
-    @sensor.each do |s|
-      s += "#{s.name} #{s.value} #{s.units}"
+  def data?
+	@sensor.length > 0
+  end
+
+  def to_data_row
+    if @sensor.length > 0
+      print "#{timestamp.strftime("%Y-%m-%d %H:%M:%S")}"
+      @sensor.each {|s| print s.new_value ? "\t#{s.value}" : "\t-" }
+      puts  
     end
-    return s
+  end
+
+  def to_s
+    if @sensor.length > 0
+      str = "#{timestamp.strftime("%Y-%m-%dT%H:%M:%S")}\n"
+      @sensor.each do |s|
+        str += "#{s.name} #{s.value} #{s.units} #{s.new_value}\n"
+      end
+      return str
+    else
+      return "No Data"
+    end
   end
   
 end
