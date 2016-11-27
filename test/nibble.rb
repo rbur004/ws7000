@@ -53,7 +53,7 @@ require_relative '../lib/nibble.rb'
   b.each_byte_with_index do |v,i|
     puts "#{i} #{"%02X"%v}"
   end
-  
+
   puts "Output by nibble  with index"
   b.each_nibble_with_index do |v,i|
     puts "#{i} #{"%1X"%v}"

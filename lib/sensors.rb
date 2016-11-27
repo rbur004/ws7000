@@ -6,18 +6,7 @@ class Sensors
 
   attr_accessor :sensor, :timestamp
 
-=begin
-  Request Dataset
-  <SOH><0x1><Chksum><EOT>
-    Response from weather station: (34/60 Bytes) Mine has additional 0 byte, so 35/61 bytes are received.
-    1. Data available
-      Block no.: 2 bytes  Number of the block in the memory
-                 (no relation to time. Serves to control dataset registered twice).)
-      Time:      2 bytes Age of the dataset in minutes up to the current time.
-                 age = ( data[2] & 0xff )  + ( data[3] << 8 & 0xff00 );
-      Data:      30 (9 sensors) or 56 (16 sensors) bytes
-    2. No data available: <DLE>
-=end
+
   def initialize(the_data_byte_array)
     data = Nibble.new(the_data_byte_array)
     @sensor = [ ]

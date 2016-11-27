@@ -4,6 +4,7 @@ require_relative 'nibble.rb'
 #DCF77 encapsulates a DCF77 time record, captured by the WS7000
 class DCF77
   attr_reader :time
+
   def initialize(dcf77)
     if (dcf77.get_ubyte(0) & 0x8) != 0 #We have synchronized with a DCF signal
       @time = Time.local(@dcf77.get_ubcd(12,2) + 100, @dcf77.get_ubcd(10,2), @dcf77.get_ubcd(8,2),
